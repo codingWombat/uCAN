@@ -4,4 +4,9 @@
     <TargetFramework>netstandard2.1</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="crozone.SerialPorts.LinuxSerialPort" Version="2.0.3" />
+    <PackageReference Include="crozone.SerialPorts.WindowsSerialPort" Version="2.0.2" />
+  </ItemGroup>
+
 </Project>
