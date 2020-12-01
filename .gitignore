@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+.vs/
+.vscode/
+*.7z
+*.cer
+*.nupkg
+*.p12
+*.pfx
+*.user
+*.tar
+*.zip
+**/NVChip
