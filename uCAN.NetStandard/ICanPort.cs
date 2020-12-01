@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace uCAN {
     public interface ICanPort : IDisposable {
@@ -21,12 +22,19 @@ namespace uCAN {
         /// <returns></returns>
         bool SetAcceptanceFilter(int fid, int code, int mask, int isExt);
 
-        void Open();
+        void Open() => OpenAsync().Wait();
+
+        Task OpenAsync();
 
         /// <summary>
         /// Reads the next message from the underlying stream.
         /// </summary>
-        CanMessage Read();
+        CanMessage Read() => ReadAsync().Result;
+
+        /// <summary>
+        /// Reads the next message from the underlying stream.
+        /// </summary>
+        Task<CanMessage> ReadAsync();
 
         void Close();
     }

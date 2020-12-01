@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using crozone.SerialPorts.Abstractions;
 using static uCAN.Util;
 
@@ -19,7 +20,10 @@ namespace uCAN {
 
         public bool SetAcceptanceFilter(int fid, int code, int mask, int isExt) => throw new NotSupportedException("not implemented yet");
 
-        public void Open() => SerialPort.Open();
+        public Task OpenAsync() {
+            SerialPort.Open();
+            return Task.CompletedTask;
+        }
 
         private static byte Check(int b) {
             if(b < 0 || b > 0xff) throw new IOException("unexpected end of stream");
@@ -28,23 +32,23 @@ namespace uCAN {
             return (byte)b;
         }
 
-        private byte ReadByte() => Check(SerialPort.BaseStream.ReadByte());
+        private Task<byte> ReadByte() => Task.FromResult(Check(SerialPort.BaseStream.ReadByte()));
 
-        private void ReadBytes(byte[] buf, int offset, int count) {
-            SerialPort.BaseStream.ReadAllBytes(buf, offset, count);
+        private async Task ReadBytes(byte[] buf, int offset, int count) {
+            await SerialPort.BaseStream.ReadAllBytesAsync(buf, offset, count);
             for(int i = offset; i < offset + count; i++) {
                 Check(buf[i]);
             }
         }
 
-        private byte[] ReadBytes(int len) {
+        private async Task<byte[]> ReadBytes(int len) {
             var ret = new byte[len];
-            ReadBytes(ret, 0, ret.Length);
+            await ReadBytes(ret, 0, ret.Length);
             return ret;
         }
 
-        private string ReadAscii(int len) {
-            var tmp1 = ReadBytes(len);
+        private async Task<string> ReadAscii(int len) {
+            var tmp1 = await ReadBytes(len);
             var tmp2 = new char[tmp1.Length];
             for(int i = 0; i < tmp1.Length; i++) {
                 tmp2[i] = (char)tmp1[i];
@@ -53,9 +57,9 @@ namespace uCAN {
         }
 
         //port of SLCanAdapter.cpp SLCanAdapter_p::receive()
-        public CanMessage Read() {
+        public async Task<CanMessage> ReadAsync() {
             while(true) {
-                var start = ReadByte();
+                var start = await ReadByte();
                 int idLen;
                 bool isExt = false;
                 if(start == 'T') {
@@ -64,12 +68,12 @@ namespace uCAN {
                 }
                 else if(start == 't') idLen = 3;
                 else {
-                    while(ReadByte() != '\r') { } //skip line
+                    while(await ReadByte() != '\r') { } //skip line
                     continue;
                 }
-                uint id = Convert.ToUInt32(ReadAscii(idLen), 16);
-                int len = Convert.ToInt32(((char)ReadByte()).ToString(), 16);
-                var rawData = ReadAscii(len * 2);
+                uint id = Convert.ToUInt32(await ReadAscii(idLen), 16);
+                int len = Convert.ToInt32(((char)await ReadByte()).ToString(), 16);
+                var rawData = await ReadAscii(len * 2);
                 var data = new byte[len];
                 for(int i = 0; i < len; i++) {
                     data[i] = Convert.ToByte(rawData.Substring(i * 2, 2), 16);

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace uCAN {
     /// <summary>
@@ -16,19 +17,19 @@ namespace uCAN {
 #pragma warning restore S3928
         }
 
-        public static void ReadAllBytes(this Stream stream, byte[] buf, int offset, int count) {
-            int num = stream.Read(buf, offset, count);
+        public static async Task ReadAllBytesAsync(this Stream stream, byte[] buf, int offset, int count) {
+            int num = await stream.ReadAsync(buf, offset, count);
             if(num != count) throw new IOException("unexpected end of stream");
         }
 
-        public static byte[] ReadAllBytes(this Stream stream, int len) {
+        public static async Task<byte[]> ReadAllBytesAsync(this Stream stream, int len) {
             var ret = new byte[len];
-            stream.ReadAllBytes(ret, 0, ret.Length);
+            await stream.ReadAllBytesAsync(ret, 0, ret.Length);
             return ret;
         }
 
-        public static string ReadAscii(this Stream stream, int len) {
-            var tmp1 = stream.ReadAllBytes(len);
+        public static async Task<string> ReadAsciiAsync(this Stream stream, int len) {
+            var tmp1 = await stream.ReadAllBytesAsync(len);
             var tmp2 = new char[tmp1.Length];
             for(int i = 0; i < tmp1.Length; i++) {
                 tmp2[i] = (char)tmp1[i];
