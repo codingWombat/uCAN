@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace uCAN {
@@ -34,7 +35,7 @@ namespace uCAN {
         /// <summary>
         /// Reads the next message from the underlying stream.
         /// </summary>
-        Task<CanMessage> ReadAsync();
+        Task<CanMessage> ReadAsync(CancellationToken cancel = default);
 
         void Close();
     }

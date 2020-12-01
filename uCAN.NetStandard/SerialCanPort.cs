@@ -1,12 +1,14 @@
 ﻿using System;
 using System.IO;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using crozone.SerialPorts.Abstractions;
 using static uCAN.Util;
 
 namespace uCAN {
     public sealed class SerialCanPort : ICanPort {
+        private readonly byte[] oneByteReadBuf = new byte[1];
+
         public ISerialPort SerialPort { get; }
 
         public int BaudRate {
@@ -32,7 +34,11 @@ namespace uCAN {
             return (byte)b;
         }
 
-        private Task<byte> ReadByte() => Task.FromResult(Check(SerialPort.BaseStream.ReadByte()));
+        private async Task<byte> ReadByte(CancellationToken cancel = default) {
+            int num = await SerialPort.BaseStream.ReadAsync(oneByteReadBuf, cancel);
+            if(num < 1) throw new IOException("unexpected end of stream");
+            return Check(oneByteReadBuf[0]);
+        }
 
         private async Task ReadBytes(byte[] buf, int offset, int count) {
             await SerialPort.BaseStream.ReadAllBytesAsync(buf, offset, count);
@@ -57,9 +63,9 @@ namespace uCAN {
         }
 
         //port of SLCanAdapter.cpp SLCanAdapter_p::receive()
-        public async Task<CanMessage> ReadAsync() {
+        public async Task<CanMessage> ReadAsync(CancellationToken cancel = default) {
             while(true) {
-                var start = await ReadByte();
+                var start = await ReadByte(cancel);
                 int idLen;
                 bool isExt = false;
                 if(start == 'T') {
