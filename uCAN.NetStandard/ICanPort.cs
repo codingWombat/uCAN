@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace uCAN {
-    public interface ICanPort : IDisposable {
+    public interface ICanPort : IDisposable, IAsyncDisposable {
         int BaudRate { get; set; }
 
         /// <summary>
@@ -23,20 +23,15 @@ namespace uCAN {
         /// <returns></returns>
         bool SetAcceptanceFilter(int fid, int code, int mask, int isExt);
 
-        void Open() => OpenAsync().Wait();
-
         Task OpenAsync();
-
-        /// <summary>
-        /// Reads the next message from the underlying stream.
-        /// </summary>
-        CanMessage Read() => ReadAsync().Result;
 
         /// <summary>
         /// Reads the next message from the underlying stream.
         /// </summary>
         Task<CanMessage> ReadAsync(CancellationToken cancel = default);
 
-        void Close();
+        Task WriteAsync(CanMessage msg, CancellationToken cancel = default);
+
+        Task CloseAsync();
     }
 }

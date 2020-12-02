@@ -1,5 +1,8 @@
 ﻿using System;
 using System.IO;
+using System.IO.Ports;
+using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using crozone.SerialPorts.Abstractions;
@@ -22,9 +25,9 @@ namespace uCAN {
 
         public bool SetAcceptanceFilter(int fid, int code, int mask, int isExt) => throw new NotSupportedException("not implemented yet");
 
-        public Task OpenAsync() {
+        public async Task OpenAsync() {
             SerialPort.Open();
-            return Task.CompletedTask;
+            await SerialPort.BaseStream.WriteAsync("V\rN\rO\r".ToByteArray());
         }
 
         private static byte Check(int b) {
@@ -61,6 +64,11 @@ namespace uCAN {
             }
             return new string(tmp2);
         }
+        private static string ToHex(long value, int len) {
+            var str = Convert.ToString(value, 16);
+            if(str.Length > len) throw new ArgumentException(value + " does not fit within " + len + " hex digits");
+            return "0".Repeat(len - str.Length) + str;
+        }
 
         //port of SLCanAdapter.cpp SLCanAdapter_p::receive()
         public async Task<CanMessage> ReadAsync(CancellationToken cancel = default) {
@@ -94,8 +102,26 @@ namespace uCAN {
             }
         }
 
-        public void Close() => SerialPort.Close();
+        public async Task WriteAsync(CanMessage msg, CancellationToken cancel = default) {
+            var b = new StringBuilder();
+            if(msg.IsExtended) b.Append("T").Append(ToHex(msg.Id, 8));
+            else b.Append("t").Append(ToHex(msg.Id, 3));
+            b.Append(ToHex(msg.Data.Length, 1));
+            foreach(var e in msg.Data) {
+                b.Append(Convert.ToString(e, 16));
+            }
+            b.Append("\r");
+            await SerialPort.BaseStream.WriteAsync(b.ToByteArray(), cancel);
+        }
 
-        public void Dispose() => SerialPort.Dispose();
+        public async Task CloseAsync() {
+            using(SerialPort) {
+                await SerialPort.BaseStream.WriteAsync("C\r".ToByteArray());
+            }
+        }
+
+        public void Dispose() => CloseAsync().Wait();
+
+        public async ValueTask DisposeAsync() => await CloseAsync();
     }
 }
