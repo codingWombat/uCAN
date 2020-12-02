@@ -104,7 +104,7 @@ namespace uCAN {
 
         public async Task WriteAsync(CanMessage msg, CancellationToken cancel = default) {
             var b = new StringBuilder();
-            if(msg.IsExtended) b.Append("T").Append(ToHex(msg.Id, 8));
+            if(msg.IsExtended || msg.Id > 0xfff) b.Append("T").Append(ToHex(msg.Id, 8));
             else b.Append("t").Append(ToHex(msg.Id, 3));
             b.Append(ToHex(msg.Data.Length, 1));
             foreach(var e in msg.Data) {
